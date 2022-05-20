@@ -1,0 +1,229 @@
+version: "3.9"
+
+services:
+  es01:
+    image: 127.0.0.1:5000/elasticsearch
+    build:
+      target: elasticsearch
+    volumes:
+      - esdata01:/usr/share/elasticsearch/data
+    deploy:
+      placement:
+        constraints: [ node.hostname == swarm2 ]
+      endpoint_mode: dnsrr
+      mode: "replicated"
+      replicas: 1
+      resources:
+        limits:
+          memory: 6G
+    env_file: .env
+    environment:
+      - node.name=es01
+      - cluster.name=dataviz
+      - cluster.initial_master_nodes=es01,es02,es03
+      - discovery.seed_hosts=es02,es03
+      - bootstrap.memory_lock=true
+      - xpack.monitoring.collection.enabled=true
+      - xpack.security.enabled=true
+      - xpack.security.http.ssl.enabled=true
+      - xpack.security.http.ssl.key=certs/es01/es01.key
+      - xpack.security.http.ssl.certificate=certs/es01/es01.crt
+      - xpack.security.http.ssl.certificate_authorities=certs/ca/ca.crt
+      - xpack.security.http.ssl.verification_mode=certificate
+      - xpack.security.transport.ssl.enabled=true
+      - xpack.security.transport.ssl.key=certs/es01/es01.key
+      - xpack.security.transport.ssl.certificate=certs/es01/es01.crt
+      - xpack.security.transport.ssl.certificate_authorities=certs/ca/ca.crt
+      - xpack.security.transport.ssl.verification_mode=certificate
+      - xpack.license.self_generated.type=${LICENSE}
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -s --cacert config/certs/ca/ca.crt https://localhost:9200 | grep -q 'missing authentication credentials'",
+        ]
+      interval: 10s
+      timeout: 10s
+      retries: 120
+    networks:
+      esnet:
+
+  es02:
+    image: 127.0.0.1:5000/elasticsearch
+    build:
+      target: elasticsearch
+    volumes:
+      - esdata02:/usr/share/elasticsearch/data
+    deploy:
+      placement:
+        constraints: [ node.hostname == swarm3 ]
+      endpoint_mode: dnsrr
+      mode: "replicated"
+      replicas: 1
+      resources:
+        limits:
+          memory: 6G
+    env_file: .env
+    environment:
+      - node.name=es02
+      - cluster.name=dataviz
+      - cluster.initial_master_nodes=es01,es02,es03
+      - discovery.seed_hosts=es01,es03
+      - bootstrap.memory_lock=true
+      - xpack.monitoring.collection.enabled=true
+      - xpack.security.enabled=true
+      - xpack.security.http.ssl.enabled=true
+      - xpack.security.http.ssl.key=certs/es02/es02.key
+      - xpack.security.http.ssl.certificate=certs/es02/es02.crt
+      - xpack.security.http.ssl.certificate_authorities=certs/ca/ca.crt
+      - xpack.security.http.ssl.verification_mode=certificate
+      - xpack.security.transport.ssl.enabled=true
+      - xpack.security.transport.ssl.key=certs/es02/es02.key
+      - xpack.security.transport.ssl.certificate=certs/es02/es02.crt
+      - xpack.security.transport.ssl.certificate_authorities=certs/ca/ca.crt
+      - xpack.security.transport.ssl.verification_mode=certificate
+      - xpack.license.self_generated.type=${LICENSE}
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -s --cacert config/certs/ca/ca.crt https://localhost:9200 | grep -q 'missing authentication credentials'",
+        ]
+      interval: 10s
+      timeout: 10s
+      retries: 120
+    networks:
+      esnet:
+
+  es03:
+    image: 127.0.0.1:5000/elasticsearch
+    build:
+      target: elasticsearch
+    volumes:
+      - esdata03:/usr/share/elasticsearch/data
+    deploy:
+      placement:
+        constraints: [ node.hostname == swarm4 ]
+      endpoint_mode: dnsrr
+      mode: "replicated"
+      replicas: 1
+      resources:
+        limits:
+          memory: 6G
+    env_file: .env
+    environment:
+      - node.name=es03
+      - cluster.name=dataviz
+      - cluster.initial_master_nodes=es01,es02,es03
+      - discovery.seed_hosts=es01,es02
+      - bootstrap.memory_lock=true
+      - xpack.monitoring.collection.enabled=true
+      - xpack.security.enabled=true
+      - xpack.security.http.ssl.enabled=true
+      - xpack.security.http.ssl.key=certs/es03/es03.key
+      - xpack.security.http.ssl.certificate=certs/es03/es03.crt
+      - xpack.security.http.ssl.certificate_authorities=certs/ca/ca.crt
+      - xpack.security.http.ssl.verification_mode=certificate
+      - xpack.security.transport.ssl.enabled=true
+      - xpack.security.transport.ssl.key=certs/es03/es03.key
+      - xpack.security.transport.ssl.certificate=certs/es03/es03.crt
+      - xpack.security.transport.ssl.certificate_authorities=certs/ca/ca.crt
+      - xpack.security.transport.ssl.verification_mode=certificate
+      - xpack.license.self_generated.type=${LICENSE}
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -s --cacert config/certs/ca/ca.crt https://localhost:9200 | grep -q 'missing authentication credentials'",
+        ]
+      interval: 10s
+      timeout: 10s
+      retries: 120
+    networks:
+      esnet:
+
+  kibana:
+    depends_on:
+      - es01
+      - es02
+      - es03
+    image: 127.0.0.1:5000/kibana
+    build:
+      target: kibana
+    volumes:
+      - type: bind
+        source: ./config/kibana/kibana.yml
+        target: /usr/share/kibana/config/kibana.yml
+        read_only: true
+      - kibanadata:/usr/share/kibana/data
+    environment:
+      - SERVERNAME=kibana
+      - SERVER_BASEPATH=/kibana
+      - ELASTICSEARCH_HOSTS=https://es01:9200
+      - ELASTICSEARCH_USERNAME=kibana_system
+      - ELASTICSEARCH_PASSWORD=${KIBANA_PASSWORD}
+      - ELASTICSEARCH_SSL_CERTIFICATEAUTHORITIES=config/certs/ca/ca.crt
+    deploy:
+      placement:
+        constraints: [ node.hostname == swarm1 ]
+      endpoint_mode: dnsrr
+      mode: "replicated"
+      replicas: 1
+      resources:
+        limits:
+          memory: 6G
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -s -I http://localhost:5601 | grep -q 'HTTP/1.1 302 Found'",
+        ]
+      interval: 10s
+      timeout: 10s
+      retries: 120
+    networks:
+      - esnet
+
+  haproxy:
+    depends_on:
+      - es01
+      - es02
+      - es03
+      - kibana
+    image: 127.0.0.1:5000/haproxy
+    build:
+      target: haproxy
+    ports:
+      - "0.0.0.0:8080:8080"
+      - "80:80"
+      - "443:443"
+    networks:
+      esnet:
+
+networks:
+  esnet:
+    driver: overlay
+    attachable: true
+    name: esnet
+
+volumes:
+  kibanadata:
+    driver: local
+  esdata01:
+    driver: local
+  esdata02:
+    driver: local
+  esdata03:
+    driver: local
