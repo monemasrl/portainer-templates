@@ -13,7 +13,7 @@ fi
 for i in es01 es02 es03;
 do
  /usr/bin/curl -X POST \
-	  --cacert config/certs/ca.crt \
+	  --cacert config/certs/ca/ca.crt \
 	  -u elastic:${ELASTIC_PASSWORD} \
 	  -H 'Content-Type: application/json' \
 	  https://$i:9200/_security/user/kibana_system/_password \
