@@ -1,13 +1,16 @@
 #!/bin/bash
 
 if [ ! -f config/certs/ca.zip ]; then
+  mkdir -p config/certs;
   echo "Creating CA";
+  echo $PWD;
   bin/elasticsearch-certutil ca --silent --pem -out config/certs/ca.zip;
-  unzip config/certs/ca.zip -d config/certs;
+  ls -la config;
+  unzip /usr/share/elasticsearch/config/certs/ca.zip -d /usr/share/elasticsearch/config/certs;
 fi;
 
 echo "Setting file permissions"
-chown -R root:root config/certs;
-find . -type d -exec chmod 750 \{\} \;;
-find . -type f -exec chmod 640 \{\} \;;
+chown -R elasticsearch:elasticsearch config/certs;
+find config/certs -type d -exec chmod 750 \{\} \;;
+find config/certs -type f -exec chmod 640 \{\} \;;
 

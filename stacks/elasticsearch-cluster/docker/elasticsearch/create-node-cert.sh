@@ -5,25 +5,25 @@ if [ -z $NODE_NAME ]; then
   exit 1;
 fi
 
-if [ ! -f config/certs/ca.crt ]; then
+if [ ! -f config/certs/ca/ca.crt ]; then
   echo "Non è disponibile la CA";
   exit 1;
 fi;
 
 echo "Creating ${NODE_NAME} cert";
 echo -ne \
-"instances:\n" \
-"  - name: ${node}\n"\
+"instances:\n"\
+"  - name: ${NODE_NAME}\n"\
 "    dns:\n"\
-"      - ${node}\n"\
+"      - ${NODE_NAME}\n"\
 "      - localhost\n"\
 "    ip:\n"\
 "      - 127.0.0.1\n"\
 > config/certs/instances.yml;
 bin/elasticsearch-certutil cert --silent --pem -out config/certs/certs.zip --in config/certs/instances.yml --ca-cert config/certs/ca/ca.crt --ca-key config/certs/ca/ca.key;
+echo "Unzipping certificate"
 unzip config/certs/certs.zip -d config/certs;
 echo "Setting file permissions"
-chown -R root:root config/certs;
-find . -type d -exec chmod 750 \{\} \;;
-find . -type f -exec chmod 640 \{\} \;;
+find config/certs -type d -exec chmod 750 \{\} \;;
+find config/certs -type f -exec chmod 640 \{\} \;;
 
