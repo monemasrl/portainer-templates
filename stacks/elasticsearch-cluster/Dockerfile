@@ -1,4 +1,5 @@
-FROM docker.elastic.co/elasticsearch/elasticsearch:8.1.3 AS elasticsearch-dataviz
+ARG STACK_VERSION
+FROM docker.elastic.co/elasticsearch/elasticsearch:${STACK_VERSION} AS elasticsearch-dataviz
 USER 0
 RUN apt-get update && apt-get install -y \
   iputils-ping \
@@ -11,7 +12,8 @@ ADD ./docker/elasticsearch/docker-entrypoint.sh /usr/local/bin/
 RUN /usr/local/bin/create-ca.sh
 USER elasticsearch
 
-FROM docker.elastic.co/kibana/kibana:8.1.3 AS kibana-dataviz
+ARG STACK_VERSION
+FROM docker.elastic.co/kibana/kibana:${STACK_VERSION} AS kibana-dataviz
 USER 0
 RUN apt-get update && apt-get install -y \
   iputils-ping \
@@ -19,7 +21,8 @@ RUN apt-get update && apt-get install -y \
   curl
 USER kibana
 COPY --from=elasticsearch-dataviz /usr/share/elasticsearch/config/certs /usr/share/kibana/config/certs
-ADD ./docker/kibana/set_password.sh .
+ADD ./docker/kibana/set_password.sh /usr/local/bin/
+ADD ./docker/kibana/kibana-docker /usr/local/bin/
 
 FROM haproxy:2.5-alpine AS haproxy
 ADD ./config/haproxy /usr/local/etc/haproxy

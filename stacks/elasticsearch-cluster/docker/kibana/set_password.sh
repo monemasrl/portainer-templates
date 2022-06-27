@@ -12,6 +12,7 @@ fi
 
 for i in es01 es02 es03;
 do
+ echo "Set password on $i"
  /usr/bin/curl -X POST \
 	  --cacert config/certs/ca/ca.crt \
 	  -u elastic:${ELASTIC_PASSWORD} \
